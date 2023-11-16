@@ -1,0 +1,101 @@
+item {
+    id: 1
+    name: 'beans'
+}
+item {
+    id: 2
+    name: 'cake'
+}
+item {
+    id: 3
+    name: 'candy'
+}
+item {
+    id: 4
+    name: 'cereal'
+}
+item {
+    id: 5
+    name: 'chips'
+}
+item {
+    id: 6
+    name: 'chocolate'
+}
+item {
+    id: 7
+    name: 'coffee'
+}
+item {
+    id: 8
+    name: 'corn'
+}
+item {
+    id: 9
+    name: 'fish'
+}
+item {
+    id: 10
+    name: 'flour'
+}
+item {
+    id: 11
+    name: 'honey'
+}
+item {
+    id: 12
+    name: 'jam'
+}
+item {
+    id: 13
+    name: 'juice'
+}
+item {
+    id: 14
+    name: 'milk'
+}
+item {
+    id: 15
+    name: 'nuts'
+}
+item {
+    id: 16
+    name: 'oil'
+}
+item {
+    id: 17
+    name: 'pasta'
+}
+item {
+    id: 18
+    name: 'rice'
+}
+item {
+    id: 19
+    name: 'soda'
+}
+item {
+    id: 20
+    name: 'spices'
+}
+item {
+    id: 21
+    name: 'sugar'
+}
+item {
+    id: 22
+    name: 'tea'
+}
+item {
+    id: 23
+    name: 'tomato_sauce'
+}
+item {
+    id: 24
+    name: 'vinegar'
+}
+item {
+    id: 25
+    name: 'water'
+}
+

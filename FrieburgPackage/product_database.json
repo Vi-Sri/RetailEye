@@ -1,0 +1,52 @@
+{
+    "0022000155832": {
+        "name": "Orbit Sweet Mint, Sugar Free Gum 3 Pack",
+        "price": 5.99,
+        "product_category": "candy"
+    },
+    "047495013054": {
+        "name": "Nature’s Bakery Fig Bar - Raspberry",
+        "price": 2.99,
+        "product_category": "candy"
+    },
+    "03424005": {
+        "name": "Hershey’s Chocolate Bar",
+        "price": 1.99,
+        "product_category": "chocolate"
+    },
+    "3337875549615": {
+        "name": "La Roche-Posay Lotion",
+        "price": 12.99,  
+        "product_category": "gum"
+    },
+    "0022000004833": {
+        "name": "Orbit Single Gum Pack",
+        "price": 2.99,  
+        "product_category": "candy"
+    },
+    "9780449213940": {
+        "name": "All Quiet on the Western Front Book",
+        "price": 24.99,  
+        "product_category": "gum"
+    },
+    "0045496883409": {
+        "name": "Nintendo Switch",
+        "price": 299.99,  
+        "product_category": "gum"
+    },
+    "709586514832": {
+        "name": "Poppi Watermelon Prebiotic Soda",
+        "price": 2.99,  
+        "product_category": "gum"
+    },
+    "0813267020076": {
+        "name": "2% Reduced Fat Milk",
+        "price": 3.99,  
+        "product_category": "milk"
+    },
+    "0041570056707": {
+        "name": "Almond Breeze Milk",
+        "price": 4.99,  
+        "product_category": "milk"
+    }
+}
