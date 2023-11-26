@@ -1,21 +1,31 @@
+import json
+
 class BarcodeSwitchDetector:
 
-    def __init__(self, csv_db_file_path) -> None:
-        self.barcode_mapping = {}
-        self.load_barcode_dictionary(csv_path=csv_db_file_path)
-        pass
+    def __init__(self, db_file_path, isJson=True) -> None:
+        self.product_database = {}
+        # self.load_barcode_dictionary(csv_path=csv_db_file_path)
+        if isJson:
+            self.load_barcode_db(json_file_path=db_file_path)
+        else:
+            self.load_barcode_dictionary(db_file_path)
 
+    def load_barcode_db(self, json_file_path):
+        # Loading product database
+        with open(json_file_path, 'r') as f:
+            self.product_database = json.load(f)
 
     def load_barcode_dictionary(self, csv_path):
         lines = []
         with open(csv_path) as f:
             lines = f.readlines()
 
-        for line in enumerate(lines):
+        for i, line in enumerate(lines):
+            # print(line)
             line = line.strip()
             barcode, productname = line.split(",")
-            if not barcode in self.barcode_mapping:
-                self.barcode_mapping[barcode] = productname
+            if not barcode in self.product_database:
+                self.product_database[barcode] = productname
     
 
     def detect_barcode_switch(self, detected_objects,objects_confidences, barcode_number, take_top_n=3) -> bool:
@@ -26,24 +36,15 @@ class BarcodeSwitchDetector:
         IS_TICKET_SWTICH = False
         TICKET_SWTICH_COUNTER = 0
 
-        product_name = self.barcode_mapping[barcode_number]
+        product_name = self.product_database[barcode_number]
 
-        filtered_detected_objects, filtered_objects_confidences = self.sort_and_filter_objects(detected_objects,objects_confidences, take_top_n=take_top_n)
+        filtered_detected_objects, filtered_objects_confidences = detected_objects[:take_top_n], objects_confidences[:take_top_n]
 
         for idx, det_obj in enumerate(filtered_detected_objects):
             if det_obj!=product_name:
                 TICKET_SWTICH_COUNTER +=1
 
-        if TICKET_SWTICH_COUNTER==take_top_n:
+        if TICKET_SWTICH_COUNTER>=take_top_n:
             IS_TICKET_SWTICH = True
 
         return IS_TICKET_SWTICH
-
-
-    def sort_and_filter_objects(self, detected_objects,objects_confidences, take_top_n=3):
-        """
-        TODO sort objects based on bounding box and confidence. take top n.
-        """
-        filtered_detected_objects, filtered_objects_confidences = None, None
-
-        return filtered_detected_objects, filtered_objects_confidences
