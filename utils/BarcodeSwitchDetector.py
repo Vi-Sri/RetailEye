@@ -28,23 +28,38 @@ class BarcodeSwitchDetector:
                 self.product_database[barcode] = productname
     
 
-    def detect_barcode_switch(self, detected_objects,objects_confidences, barcode_number, take_top_n=3) -> bool:
+    def detect_barcode_switch(self, detected_objects,objects_confidences, barcode_number, take_top_n=1) -> bool:
         """
         Detects if barcode is switched based on barcode numebr and detected object.
         """
 
         IS_TICKET_SWTICH = False
         TICKET_SWTICH_COUNTER = 0
+        product_data = None
 
-        product_name = self.product_database[barcode_number]
+        try:
+            product_data = self.product_database.get(barcode_number, None)
+        except KeyError:
+            return None
+        
+        if product_data is not None:
 
-        filtered_detected_objects, filtered_objects_confidences = detected_objects[:take_top_n], objects_confidences[:take_top_n]
+            product_category = product_data['product_category']
+            product_price = product_data['price']
+            product_name = product_data['name']
 
-        for idx, det_obj in enumerate(filtered_detected_objects):
-            if det_obj!=product_name:
-                TICKET_SWTICH_COUNTER +=1
 
-        if TICKET_SWTICH_COUNTER>=take_top_n:
-            IS_TICKET_SWTICH = True
+            if len(detected_objects)>=take_top_n:
+                print(detected_objects, objects_confidences)
+                filtered_detected_objects, filtered_objects_confidences = detected_objects[:take_top_n], objects_confidences[:take_top_n]
+
+                for idx, det_obj in enumerate(filtered_detected_objects):
+                    if det_obj!=product_name:
+                        TICKET_SWTICH_COUNTER +=1
+
+                if TICKET_SWTICH_COUNTER>=take_top_n:
+                    IS_TICKET_SWTICH = True
+            else:
+                print("no object detected")
 
         return IS_TICKET_SWTICH

@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+from pyzbar.pyzbar import decode
+
 
 class BarcodDetection:
 
@@ -20,6 +22,17 @@ class BarcodDetection:
             for s, p in zip(decoded_info, points):
                 if s:
                     barcode = s
+                    # print(barcode)
                     draw_image = cv2.putText(draw_image, s, p[1].astype(int),cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 2, cv2.LINE_AA)
 
         return barcode,draw_image
+    
+
+    def scan_barcode(self, frame):
+        barcodes = decode(frame)
+        for barcode in barcodes:
+            barcode_data = barcode.data.decode("utf-8")
+            barcode_polygon = barcode.polygon
+            # print(barcode_data)
+            return barcode_data, np.array(barcode_polygon)
+        return None, None
