@@ -27,5 +27,6 @@ class OpenCVCameraHandler:
         Gets latest frame from the camera
         """
         ret, frame = self.__cap.read()
-        frame = cv2.resize(frame, (1080,720))
+        if ret:
+            frame = cv2.resize(frame, (1080,720))
         return ret, frame
