@@ -48,5 +48,15 @@
         "name": "Almond Breeze Milk",
         "price": 4.99,  
         "product_category": "milk"
+    },
+    "050428476765":{
+        "name": "Fiber Gummies",
+        "price": 14.99,  
+        "product_category": "Health"
+    },
+    "078742251745":{
+        "name": "Green Beans",
+        "price": 4.99,  
+        "product_category": "can"
     }
 }

@@ -32,7 +32,7 @@ class ObjectDetector:
         return input_data
 
 
-    def detect_object(self, input, confidence_threshold=0.6):
+    def detect_object(self, input, confidence_threshold=0.2):
         """
         Detects objects and gets top N predictions
         """
@@ -75,7 +75,10 @@ class ObjectDetector:
 
         if sortDetections:
             zipped_detections = zip(boxes, scores, classes)
-            zipped_detections.sort()
-            boxes,scores,classes = zip(*zipped_detections)
+            zipped_detections = sorted(zipped_detections, key=lambda x: x[1])
+            # print(zipped_detections)
+            # boxes,scores,classes = zip(*zipped_detections)
+            if len(zipped_detections)>0:
+                boxes,scores,classes  = zip(*zipped_detections)
 
         return boxes,scores,classes
