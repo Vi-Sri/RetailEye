@@ -17,7 +17,6 @@ class OpenCVCameraHandler:
         Sets focus of the camera, should be multiple of 5, each value given will be multiplied by 5
         """
         focus_value *= self.__focus_step_value
-        # print("Focus Value :: ",focus_value)
         if focus_value%5==0:
             self.__cap.set(camera_focus_property_key, focus_value) 
         else:
