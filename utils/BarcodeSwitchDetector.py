@@ -32,6 +32,7 @@ class BarcodeSwitchDetector:
         """
         Detects if barcode is switched based on barcode numebr and detected object.
         """
+        # print("In barcode switch")
 
         IS_TICKET_SWTICH = False
         TICKET_SWTICH_COUNTER = 0
@@ -40,26 +41,55 @@ class BarcodeSwitchDetector:
         try:
             product_data = self.product_database.get(barcode_number, None)
         except KeyError:
+            print(f"No product data for: {barcode_number}")
             return None
         
+        # print("before product data is not none")
+
         if product_data is not None:
+
+            # print("product_data", product_data)
 
             product_category = product_data['product_category']
             product_price = product_data['price']
             product_name = product_data['name']
 
+            product_name = "FiberGummies"  #uncomment to check ticket switch manually
+
+            print("Barcode product: ", product_name, "Object classification", detected_objects, objects_confidences)
+
 
             if len(detected_objects)>=take_top_n:
-                print(detected_objects, objects_confidences)
+                # print(detected_objects, objects_confidences)
+                take_top_n +=1
                 filtered_detected_objects, filtered_objects_confidences = detected_objects[:take_top_n], objects_confidences[:take_top_n]
 
+                # print(filtered_detected_objects, filtered_objects_confidences)
+                # print("Barcode product: ", product_name, "Object classification", filtered_detected_objects, filtered_objects_confidences)
+                
                 for idx, det_obj in enumerate(filtered_detected_objects):
+                    # print(idx, det_obj)
+                    if idx==0:
+                        if det_obj=="UnknownObjects": # No need to check ticketswitch
+                            break
+                    
                     if det_obj!=product_name:
                         TICKET_SWTICH_COUNTER +=1
+                    else:
+                        break
 
-                if TICKET_SWTICH_COUNTER>=take_top_n:
+                if TICKET_SWTICH_COUNTER>=take_top_n-1:
                     IS_TICKET_SWTICH = True
             else:
-                print("no object detected")
+                print(f"no object detected len: {len(detected_objects)}")
+
+
+            
+
+            # print("TICKET_SWTICH_COUNTER:", TICKET_SWTICH_COUNTER)
+
+        else:
+            print(f"product_data is none for : {barcode_number}")
+
 
         return IS_TICKET_SWTICH

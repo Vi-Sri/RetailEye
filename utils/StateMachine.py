@@ -35,20 +35,15 @@ class FSM:
     def get_current_state(self) -> STATES:
         return self.CURRENT_STATE
     
+    def get_last_3_states(self) -> list(STATES):
+        return self.LAST_3_STATES
+    
     def validate_state(self, STATE,confidence) -> bool:
         if STATE in STATES:
             if STATE in self.__allowedStates[self.CURRENT_STATE] and (confidence>95 or confidence>0.95):
                 return True                
-                # if self.CURRENT_STATE==STATES.PERSON_ENTRY:
-                #     pass
-                # elif self.CURRENT_STATE==STATES.SCANNING:
-                #     pass
-                # elif self.CURRENT_STATE==STATES.WEGHING:
-                #     pass
-                # elif self.CURRENT_STATE==STATES.PAYING:
-                #     pass
-                # elif self.CURRENT_STATE==STATES.PERSON_EXIT:
-                #     pass
+            else:
+                print(f"Invalid state update Current: {self.CURRENT_STATE} Trying to set: {STATE}")
         return False
     
     def reset_FSM(self):

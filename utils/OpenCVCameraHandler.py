@@ -22,6 +22,9 @@ class OpenCVCameraHandler:
         else:
             print(f"focus value should be multiple of 5, found {focus_value}")
 
+    def isCapOpen(self):
+        return self.__cap.isOpened()
+
     def getFrame(self):
         """
         Gets latest frame from the camera

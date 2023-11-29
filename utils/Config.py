@@ -13,8 +13,11 @@ class Config:
     OBJECT_DETECTION_MODEL_FILE = "./FrieburgPackage/custom_model_lite/saved_model/detect.tflite"
     OBJECT_DETECTION_LABEL_FILE = "./FrieburgPackage/custom_model_lite/labelmap_new.txt"
     
-    CAMERA_ID = 0
-    CAMERA_FOCUS = 40
+    SCANNER_CAMERA_ID = 0
+    SCANNER_CAMERA_FOCUS = 28
 
     TOP_VIEW_CAMERA_ID = 1
     TOP_VIEW_CAMERA_FOCUS = 40
+
+    SAVE_BARCODE_IMAGES = False
+    OUTPUT_DIR = "output"
