@@ -5,6 +5,7 @@ from utils.BarcodeSwitchDetector import BarcodeSwitchDetector
 from utils.Config import Config
 from utils.ClassifyLabel import ClassifyLabel
 from utils.StateMachine import FSM, STATES
+import zmq
 
 import cv2
 import os
@@ -32,9 +33,20 @@ if __name__=="__main__":
     FrameCounterForScan = 0
     IsScanHappened= False
 
+    context = zmq.Context()
+    zmq_socket = context.socket(zmq.SUB)
+    zmq_socket.connect("tcp://localhost:5555")
+    zmq_socket.setsockopt_string(zmq.SUBSCRIBE, '')
+
     while cv_cap.isCapOpen():
 
         ret, frame = cv_cap.getFrame()
+
+        try:
+            data = zmq_socket.recv_json(flags=zmq.NOBLOCK)  
+            print("Received data:", data)
+        except zmq.Again:
+            pass
 
         if ret:
 
