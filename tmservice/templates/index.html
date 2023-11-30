@@ -2,80 +2,131 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Flask App</title>
+    <title>Checkout Screen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div>Teachable Machine Pose Model</div>
-    <button type="button" onclick="init()">Start</button>
-    <div><canvas id="canvas"></canvas></div>
-    <div id="label-container"></div>
-</body>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
-<script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
-<script type="text/javascript">
-    // More API functions here:
-    // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/pose
+<body class="bg-gray-900 text-white">
 
-    // the link to your model provided by Teachable Machine export panel
-    const URL = "/static/my_model/";
-    let model, webcam, ctx, labelContainer, maxPredictions;
-    let socket = io();
+    <div class="flex justify-center items-start p-5 gap-10 min-h-screen">
+        
+        <!-- Modified Webcam Stream Container -->
+        <div class="flex flex-col w-1/4">
+            <div class="p-4 bg-black rounded-lg">
+                <!-- Canvas for Teachable Machine Pose Model -->
+                <canvas id="canvas" class="rounded-lg"></canvas>
+            </div>
+            <div class="mt-2 flex flex-col items-center">
+                <h3 class="text-lg font-bold mt-1">Person Status:</h3>
+                <!-- Container for Pose Predictions -->
+                <div id="label-container"></div>
+            </div>
+        </div>
 
-    async function init() {
-        const modelURL = URL + "model.json";
-        const metadataURL = URL + "metadata.json";
-        model = await tmPose.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
-        const size = 200;
-        const flip = true; 
-        webcam = new tmPose.Webcam(size, size, flip);
-        await webcam.setup(); 
-        await webcam.play();
-        window.requestAnimationFrame(loop);
+        <!-- Last Scanned Product Container -->
+        <div class="flex flex-col w-1/4">
+            <div class="p-4 bg-black rounded-lg">
+                <img src="https://placehold.co/320x240" alt="Product Placeholder" class="rounded-lg">
+            </div>
+            <div class="mt-2">
+                <h3 class="text-lg font-bold">Last Scanned Product:</h3>
+                <p>Product Name</p>
+                <h3 class="text-lg font-bold">Serial Number:</h3>
+                <p>123456789</p>
+            </div>
+        </div>
 
-        const canvas = document.getElementById("canvas");
-        canvas.width = size; canvas.height = size;
-        ctx = canvas.getContext("2d");
-        labelContainer = document.getElementById("label-container");
-        for (let i = 0; i < maxPredictions; i++) {
-            labelContainer.appendChild(document.createElement("div"));
-        }
-    }
+        <!-- Order List Container -->
+        <div class="w-1/4 bg-black p-4 rounded-lg">
+            <h2 class="text-2xl font-semibold mb-4">Order List</h2>
+            <ul>
+                <li class="flex justify-between pb-1">
+                    <span>Gummies</span>
+                    <span>$5</span>
+                </li>
+                <li class="flex justify-between pb-1">
+                    <span>Gummies</span>
+                    <span>$6</span>
+                </li>
+                <li class="flex justify-between pb-1">
+                    <span>Gummies</span>
+                    <span>$7</span>
+                </li>
+                <li class="flex justify-between">
+                    <span>Total</span>
+                    <span>$18</span>
+                </li>
+            </ul>
+            <button class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded mt-4 hover:bg-blue-700">Pay Now</button>
+        </div>
+    </div>
 
-    async function loop(timestamp) {
-        webcam.update(); 
-        await predict();
-        window.requestAnimationFrame(loop);
-    }
+    <!-- Scripts for TensorFlow.js, Teachable Machine, and Socket.IO -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script type="text/javascript">
+        const URL = "/static/my_model/";
+        let model, webcam, ctx, labelContainer, maxPredictions;
+        let socket = io();
+        async function init() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+            model = await tmPose.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+            const size = 200;
+            const flip = true; 
+            webcam = new tmPose.Webcam(size, size, flip);
+            await webcam.setup(); 
+            await webcam.play();
+            window.requestAnimationFrame(loop);
 
-    async function predict() {
-        const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
-        console.log(posenetOutput);
-
-        const prediction = await model.predict(posenetOutput);
-        socket.emit('send_prediction', prediction);
-
-        for (let i = 0; i < maxPredictions; i++) {
-            const classPrediction =
-                prediction[i].className + ": " + prediction[i].probability.toFixed(2);
-            labelContainer.childNodes[i].innerHTML = classPrediction;
-        }
-
-        drawPose(pose);
-    }
-
-    function drawPose(pose) {
-        if (webcam.canvas) {
-            ctx.drawImage(webcam.canvas, 0, 0);
-            if (pose) {
-                const minPartConfidence = 0.5;
-                tmPose.drawKeypoints(pose.keypoints, minPartConfidence, ctx);
-                tmPose.drawSkeleton(pose.keypoints, minPartConfidence, ctx);
+            const canvas = document.getElementById("canvas");
+            canvas.width = size; canvas.height = size;
+            ctx = canvas.getContext("2d");
+            labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < maxPredictions; i++) {
+                labelContainer.appendChild(document.createElement("div"));
             }
         }
-    }
-</script>
+
+        async function loop(timestamp) {
+            webcam.update(); 
+            await predict();
+            window.requestAnimationFrame(loop);
+        }
+
+        async function predict() {
+            const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+            console.log(posenetOutput);
+
+            const prediction = await model.predict(posenetOutput);
+            socket.emit('send_prediction', prediction);
+
+            console.log(prediction);
+
+            for (let i = 0; i < maxPredictions; i++) {
+                const classPrediction =
+                    prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+                labelContainer.childNodes[i].innerHTML = classPrediction;
+            }
+
+            drawPose(pose);
+        }
+
+        function drawPose(pose) {
+            if (webcam.canvas) {
+                ctx.drawImage(webcam.canvas, 0, 0);
+                if (pose) {
+                    const minPartConfidence = 0.5;
+                    tmPose.drawKeypoints(pose.keypoints, minPartConfidence, ctx);
+                    tmPose.drawSkeleton(pose.keypoints, minPartConfidence, ctx);
+                }
+            }
+        }
+        window.onload = function() {
+            init();
+    };
+    </script>
+</body>
 </html>
