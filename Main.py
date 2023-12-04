@@ -67,10 +67,6 @@ def main():
     PaymentCounterMax = 5
     PaymentDone = False
 
-    context = zmq.Context()
-    zmq_socket = context.socket(zmq.SUB)
-    zmq_socket.connect("tcp://localhost:5555")
-    zmq_socket.setsockopt_string(zmq.SUBSCRIBE, '')
     global prediction_data
 
     while cv_cap.isCapOpen():
@@ -88,7 +84,7 @@ def main():
         # except zmq.Again:
         #     pass
         # print(StateMachine_handler.get_current_state())
-        print(ScannedItems)
+        # print(ScannedItems)
 
         if ret:
             draw_image = frame.copy()
@@ -132,13 +128,6 @@ def main():
                             product_price = product_data['price']
                             product_name = product_data['name']
 
-                            ScannedItem = {
-                                "product_name" : product_name, 
-                                "product_img" : getBase64Image(draw_image),
-                                "product_price" : f"{product_price}$"
-                            }
-
-                            ScannedItems.append(ScannedItem)
 
                         else:
                             print("Product data is None")
@@ -181,6 +170,16 @@ def main():
                             # if IS_TICKET_SWITCH:
                             #     cv2.waitKey(2000)
 
+                        ScannedItem = {
+                                "product_name" : product_name, 
+                                "product_img" : getBase64Image(draw_image),
+                                "product_price" : f"{product_price}$"
+                        }
+
+                        socketio.emit('scanned_list',ScannedItem)
+                        socketio.emit('ticket_switch',TicketSwitchDetected)  
+                        # ScannedItems.append(ScannedItem)
+
                         stateUpdated = StateMachine_handler.update_state(STATE=STATES.SCANNING, confidence=personStateConf)
                         if not stateUpdated:
                             print(f"Error upadting state: {STATES.SCANNING}")
@@ -212,51 +211,26 @@ def main():
                     
                     StateMachine_handler.reset_FSM()
                     TicketSwitchDetected = False
+
+                
+                socketio.emit('Statemachine',StateMachine_handler.get_current_state().name)  
                     
 
 
 
             # draw_image = frame.copy()
-
-            if IsScanHappened:
-                if FrameCounterForScan<FramesToSkipAfterScan:
-                    FrameCounterForScan +=1
-                    continue
-                else:
-                    IsScanHappened = False
-                    FrameCounterForScan = 0
-            else:
-                # barcode_number,draw_image = bd.detect(frame)
-                pass   
+            # if IsScanHappened:
+            #     if FrameCounterForScan<FramesToSkipAfterScan:
+            #         FrameCounterForScan +=1
+            #         continue
+            #     else:
+            #         IsScanHappened = False
+            #         FrameCounterForScan = 0
+            # else:
+            #     # barcode_number,draw_image = bd.detect(frame)
+            #     pass   
                 
             cv2.imshow(cv_cap.window_name, draw_image)
-
-        # """
-        # TODO 
-        # Wait for person Entry (get it from pose estimation module)
-        # """
-        # stateUpdated = FSM_handler.update_state(STATE=STATES.PERSON_ENTRY)
-
-        # """
-        # Wait for person to Scan the object, or when the bard code is detected update this state
-        # """
-        # stateUpdated = FSM_handler.update_state(STATE=STATES.SCANNING)
-
-
-        # """
-        # Wait for person to make a payment (wither by UI action or from the pose estimation)
-        # """
-        # stateUpdated = FSM_handler.update_state(STATE=STATES.PAYING)
-
-
-        # """
-        # Wait for person to exit (from the pose estimation)
-        # Upon receiving exit, check if person has scanned the objects, and have performed the payment.
-        # Reset all flags
-
-        # FSM_handler.reset_FSM()
-
-        # LAST_3_STATES = FSM_handler.get_last_3_states()
 
         # """
         # stateUpdated = FSM_handler.update_state(STATE=STATES.PERSON_EXIT)
@@ -281,5 +255,5 @@ def receive_state(data):
 if __name__ == "__main__":
     flask_thread = Thread(target=lambda: socketio.run(app, host=host_name, port=port, debug=False, use_reloader=False))
     flask_thread.start()
-    # main()
+    main()
     flask_thread.join()
