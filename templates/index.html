@@ -73,20 +73,12 @@
     <script type="text/javascript">
         const URL = "/static/my_model/";
         let model, ctx, labelContainer, maxPredictions;
+        const socket = io(); 
         
-        async function sendPredictionData(prediction) {
-            try {
-                await fetch('/receive_state', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ prediction }),
-                });
-            } catch (error) {
-                console.error('Error sending prediction data:', error);
-            }
+        function sendPredictionData(prediction) {
+            socket.emit('person_state', prediction);
         }
+
         async function init() {
             const modelURL = URL + "model.json";
             const metadataURL = URL + "metadata.json";
@@ -132,29 +124,6 @@
                 startWebcam(selectedDeviceId);
             });
     }
-
-    // async function setupCameraSelection() {
-    //         await navigator.mediaDevices.getUserMedia({ video: true });
-
-    //         const devices = await navigator.mediaDevices.enumerateDevices();
-    //         const videoInputDevices = devices.filter(device => device.kind === 'videoinput');
-
-    //         const cameraSelect = document.getElementById('cameraSelect');
-    //         videoInputDevices.forEach((device, index) => {
-    //             const option = document.createElement('option');
-    //             option.value = device.deviceId;
-    //             option.text = device.label || `Camera ${index + 1}`;
-    //             cameraSelect.appendChild(option);
-    //         });
-
-    //         // Event listener for camera selection change
-    //         cameraSelect.addEventListener('change', async () => {
-    //             const selectedDeviceId = cameraSelect.value;
-    //             await webcam.setDeviceId(selectedDeviceId);
-    //             await webcam.setup(); // Modify as needed to accept device ID
-    //         });
-    // }
-
         async function loop(timestamp) {
             webcam.update(); 
             await predict();
