@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout Screen</title>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        #canvas{
+            width: 400px;
+        }
+
+    </style>
 </head>
 <body class="bg-gray-900 text-white">
 
@@ -25,42 +32,27 @@
                 <h3 class="text-lg font-bold mt-1">Person Status:</h3>
                 <!-- Container for Pose Predictions -->
                 <div id="label-container"></div>
+
+                <div id="label-container2">
+                    Success: <span id="SUCCESS_Count"></span>
+                </div>
+                <div id="label-container3">
+                    Theft: <span id="Theft_Count"></span>
+                </div> 
             </div>
         </div>
 
         <!-- Last Scanned Product Container -->
         <div class="flex flex-col w-1/4">
             <div class="p-4 bg-black rounded-lg">
-                <img src="https://placehold.co/320x240" alt="Product Placeholder" class="rounded-lg">
-            </div>
-            <div class="mt-2">
-                <h3 class="text-lg font-bold">Last Scanned Product:</h3>
-                <p>Product Name</p>
-                <h3 class="text-lg font-bold">Serial Number:</h3>
-                <p>123456789</p>
+                <img id="scannedItem" src="https://placehold.co/320x240" alt="Product Placeholder" class="rounded-lg">
             </div>
         </div>
 
         <!-- Order List Container -->
         <div class="w-1/4 bg-black p-4 rounded-lg">
             <h2 class="text-2xl font-semibold mb-4">Order List</h2>
-            <ul>
-                <li class="flex justify-between pb-1">
-                    <span>Gummies</span>
-                    <span>$5</span>
-                </li>
-                <li class="flex justify-between pb-1">
-                    <span>Gummies</span>
-                    <span>$6</span>
-                </li>
-                <li class="flex justify-between pb-1">
-                    <span>Gummies</span>
-                    <span>$7</span>
-                </li>
-                <li class="flex justify-between">
-                    <span>Total</span>
-                    <span>$18</span>
-                </li>
+            <ul class="order-list">
             </ul>
             <button class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded mt-4 hover:bg-blue-700">Pay Now</button>
         </div>
@@ -73,20 +65,127 @@
     <script type="text/javascript">
         const URL = "/static/my_model/";
         let model, ctx, labelContainer, maxPredictions;
+        let prediction_global = null;
         
-        async function sendPredictionData(prediction) {
-            try {
-                await fetch('/receive_state', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ prediction }),
+        async function sendPredictionData() {
+            if (prediction_global!=null){
+                try {
+                    await fetch('/receive_state', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ prediction_global }),
+                        }).then(()=>{
+                            prediction_global = null;
+                        });
+                } catch (error) {
+                    console.error('Error sending prediction data:', error);
+                }
+            }
+            
+        }
+
+        function appendToOrderList(responseData) {
+            const orderList = document.querySelector('.order-list');
+
+            if (responseData && responseData.code === 'SUCCESS' && responseData.data) {
+                responseData.data.forEach((item) => {
+                    console.log(item);
+                    const listItem = document.createElement('li');
+                    listItem.classList.add('flex', 'justify-between', 'pb-1');
+
+                    const productName = document.createElement('span');
+                    productName.textContent = item.product_name;
+
+                    const productPrice = document.createElement('span');
+                    productPrice.textContent = item.product_price;
+
+                    listItem.appendChild(productName);
+                    listItem.appendChild(productPrice);
+                    
+                    orderList.appendChild(listItem);
                 });
-            } catch (error) {
-                console.error('Error sending prediction data:', error);
+            }
+    }
+
+       function setImage(responseData) {
+          const imgelement = document.querySelector('#scannedItem')
+          if (responseData.data.length > 0) {
+            imgelement.src = "data:image/png;base64," + responseData.data[responseData.data.length - 1].product_img
+          }
+       }
+
+        async function fetchScannedproducts() {
+            try {
+                await fetch("/get_scanned_items", {
+                    method : 'GET',
+                    headers : {
+                        'Content-Type': 'application/json',
+                    }
+                }).then((response) => {
+                    if (!response.ok) { 
+                        throw new Error(`HTTP error ${response.status}`);
+                    }
+                        return response.json();
+                    })
+                    .then((responseData) => {
+                        console.log(responseData);
+                        appendToOrderList(responseData);
+                        setImage(responseData);
+                }); 
+            } catch(error) {
+                console.error("Error fetching scanned items:", error);
             }
         }
+
+
+
+        async function fetchTransactionCounts() {
+            try {
+                await fetch("/get_transaction_counts", {
+                    method : 'GET',
+                    headers : {
+                        'Content-Type': 'application/json',
+                    }
+                }).then((response) => {
+                    if (!response.ok) { 
+                        throw new Error(`HTTP error ${response.status}`);
+                    }
+                        return response.json();
+                    })
+                    .then((responseData) => {
+                        console.log(responseData);
+                        // appendToOrderList(responseData);
+                        // setImage(responseData);
+                        const SUCCESS_Count = document.querySelector('#SUCCESS_Count');
+                        const Theft_Count = document.querySelector('#Theft_Count');
+
+                        SUCCESS_Count.innerHTML = responseData.data.Success;
+                        Theft_Count.innerHTML = responseData.data.Theft;
+                         
+                }); 
+            } catch(error) {
+                console.error("Error fetching scanned items:", error);
+            }
+        }
+        // let socket = io("http://127.0.0.1:3000");
+        
+        // function sendPredictionData(prediction) {
+        //     // try {
+        //     //     await fetch('/receive_state', {
+        //     //         method: 'POST',
+        //     //         headers: {
+        //     //             'Content-Type': 'application/json',
+        //     //         },
+        //     //         body: JSON.stringify({ prediction }),
+        //     //     });
+        //     // } catch (error) {
+        //     //     console.error('Error sending prediction data:', error);
+        //     // }
+        //     socket.emit('prediction_state', prediction);
+        // }
+
         async function init() {
             const modelURL = URL + "model.json";
             const metadataURL = URL + "metadata.json";
@@ -163,7 +262,7 @@
 
         async function predict() {
             const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
-            console.log(posenetOutput);
+            // console.log(posenetOutput);
 
             const prediction = await model.predict(posenetOutput);
 
@@ -172,8 +271,10 @@
                     prediction[i].className + ": " + prediction[i].probability.toFixed(2);
                 labelContainer.childNodes[i].innerHTML = classPrediction;
             }
-            sendPredictionData(prediction);
+            prediction_global = prediction;
+            // sendPredictionData(prediction);
             drawPose(pose);
+
         }
 
         function drawPose(pose) {
@@ -190,6 +291,17 @@
 
         window.onload = function() {
             init();
+            setInterval(
+                fetchScannedproducts, 2000
+            );
+
+            setInterval(
+                fetchTransactionCounts, 2000
+            );
+
+            setInterval(
+                sendPredictionData, 1000
+            )
         };
     </script>
 </body>

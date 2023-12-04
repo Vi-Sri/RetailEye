@@ -18,10 +18,19 @@ import base64
 from PIL import Image
 from io import BytesIO
 
+from flask_socketio import SocketIO
 
 app = Flask(__name__)
 host_name = "127.0.0.1"
 port = 3000
+# app = Flask(__name__)
+# app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+# socketio = SocketIO(app)
+# socketio.init_app(app, cors_allowed_origins="*")
+# host_name = "127.0.0.1"
+# port = 3000
+
+
 
 prediction_data = None
 last_scanned_product = None
@@ -73,7 +82,8 @@ def main():
         person_state = None
 
         if prediction_data is not None:
-            person_state = max(prediction_data['prediction'], key=lambda x: x['probability'])
+            # print(prediction_data)
+            person_state = max(prediction_data['prediction_global'], key=lambda x: x['probability'])
             # "labels":["No person","Person Entry","Scanning","Weighing","Payment","Person exit"]
 
         # try:
@@ -87,100 +97,122 @@ def main():
         if ret:
             draw_image = frame.copy()
 
+            # person_state = {"className": "Scanning", "probability": 0.99}
+
             if person_state is not None:
                 personStateConf = person_state["probability"]
                 if person_state["className"]=="No person":
-                    pass
+                    if personStateConf>0.99:
+                        last3States = StateMachine_handler.get_last_3_states()
+                        if STATES.SCANNING in last3States:
+                            if STATES.PAYING in last3States:
+                                SuccessTransationCount +=1
+                            else:
+                                TheftTransactionCount +=1
+                        StateMachine_handler.update_state(STATE=STATES.PERSON_EXIT, confidence=personStateConf)
+                        StateMachine_handler.reset_FSM()
+                        TicketSwitchDetected = False
+                        PaymentCounter = 0
+                    # pass
                 
                 elif person_state["className"]=="Person Entry":
-                    if StateMachine_handler.get_current_state()!=STATES.PERSON_ENTRY:
-                        stateUpdated = StateMachine_handler.update_state(STATE=STATES.PERSON_ENTRY, confidence=personStateConf)
-                        if not stateUpdated:
-                            print(f"Error upadting state: {STATES.PERSON_ENTRY}")
+                    if personStateConf>=1:
+                        if StateMachine_handler.get_current_state()!=STATES.PERSON_ENTRY:
+                            if StateMachine_handler.get_current_state()==STATES.PERSON_EXIT:
+                                stateUpdated = StateMachine_handler.update_state(STATE=STATES.PERSON_ENTRY, confidence=personStateConf)
+                                if not stateUpdated:
+                                    print(f"Error upadting state: {STATES.PERSON_ENTRY}")
 
                 elif person_state["className"]=="Scanning":
                     # TODO Add scanner code here to ensure scanning has happened
-
-                    
-                    """
-                    Barcode Detection
-                    """
-                    barcode_number, barcode_polygon = bd.scan_barcode(frame)
-
-                    if barcode_number is not None:
-                        IsScanHappened = True
-                        draw_image = cv2.polylines(draw_image, [barcode_polygon], True, (0, 255, 0), 2)
-
-                        # """
-                        # Save barcode detected product image
-                        # """
-                        product_data = None
-                        product_name = None
-                        try:
-                            product_data = barcode_switch_detector.product_database.get(barcode_number, None)
-                        except KeyError:
-                            pass
-                        
-                        if product_data is not None:
-                            product_category = product_data['product_category']
-                            product_price = product_data['price']
-                            product_name = product_data['name']
-
-
-                        else:
-                            print("Product data is None")
-
-                        
-                        if product_name is not None:
-                            barcode_number = product_name
-                        
-                        if Config.SAVE_BARCODE_IMAGES:
-                            image_file_name = f"{Config.OUTPUT_DIR}/{barcode_number}_{str(uuid.uuid4())[:5]}.jpg"
-                            cv2.imwrite(image_file_name, frame)
-
+                    # if StateMachine_handler.get_current_state()!=STATES.SCANNING:
+                    if personStateConf>0.90:
                         """
-                        Object Classfication
+                        Barcode Detection
                         """
-                        predLabels, predConfidences = classifier.predict(frame, isOpenCVImage=True, top=3)
-                        # print(barcode_number, predLabels, predConfidences)
-                        
-                        """
-                        Object Detection
-                        """
-                        # detected_boxes, detected_labels, confidences = obj_det.detect_object(input=frame,confidence_threshold=0.6)
-                        # for i in range(len(detected_boxes)):
-                        #     xmin, ymin, xmax, ymax = detected_boxes[i]
-                        #     cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
+                        barcode_number, barcode_polygon = bd.scan_barcode(frame)
 
-                        """
-                        Ticket Switch Detection
-                        """
-                        IS_TICKET_SWITCH = barcode_switch_detector.detect_barcode_switch(predLabels, predConfidences, barcode_number=barcode_number,take_top_n=2)
-                        if IS_TICKET_SWITCH:
-                            # print("Ticket switch")
+                        if barcode_number is not None:
+                            IsScanHappened = True
+                            draw_image = cv2.polylines(draw_image, [barcode_polygon], True, (0, 255, 0), 2)
+
+                            # """
+                            # Save barcode detected product image
+                            # """
+                            product_data = None
+                            product_name = None
+                            product_price = None
+                            try:
+                                product_data = barcode_switch_detector.product_database.get(barcode_number, None)
+                            except KeyError:
+                                pass
                             
-                            h,w,c = draw_image.shape
-                            posx, posy = int(w/2), int(h/2)
-                            cv2.putText(draw_image, "Ticket Switch", (posy,posx), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 5)
-                            cv2.imshow(cv_cap.window_name, draw_image)
-                            TicketSwitchDetected = True
+                            if product_data is not None:
+                                product_category = product_data['product_category']
+                                product_price = product_data['price']
+                                product_name = product_data['name']
 
-                            # if IS_TICKET_SWITCH:
-                            #     cv2.waitKey(2000)
 
-                        ScannedItem = {
-                                "product_name" : product_name, 
-                                "product_img" : getBase64Image(draw_image),
-                                "product_price" : f"{product_price}$"
-                        }
+                            else:
+                                print("Product data is None")
 
-                        socketio.emit('scanned_list',ScannedItem)
-                        socketio.emit('ticket_switch',TicketSwitchDetected)  
-                        # ScannedItems.append(ScannedItem)
+                            
+                            # if product_name is not None:
+                            #     barcode_number = product_name
+                            
+                            if Config.SAVE_BARCODE_IMAGES:
+                                image_file_name = f"{Config.OUTPUT_DIR}/{barcode_number}_{str(uuid.uuid4())[:5]}.jpg"
+                                cv2.imwrite(image_file_name, frame)
 
-                        stateUpdated = StateMachine_handler.update_state(STATE=STATES.SCANNING, confidence=personStateConf)
-                        if not stateUpdated:
-                            print(f"Error upadting state: {STATES.SCANNING}")
+                            """
+                            Object Classfication
+                            """
+                            predLabels, predConfidences = classifier.predict(frame, isOpenCVImage=True, top=3)
+                            print(barcode_number, predLabels, predConfidences)
+                            
+                            """
+                            Object Detection
+                            """
+                            # detected_boxes, detected_labels, confidences = obj_det.detect_object(input=frame,confidence_threshold=0.6)
+                            # for i in range(len(detected_boxes)):
+                            #     xmin, ymin, xmax, ymax = detected_boxes[i]
+                            #     cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
+
+                            """
+                            Ticket Switch Detection
+                            """
+                            IS_TICKET_SWITCH = barcode_switch_detector.detect_barcode_switch(predLabels, predConfidences, barcode_number=barcode_number,take_top_n=2)
+                            if IS_TICKET_SWITCH:
+                                # print("Ticket switch")
+                                
+                                h,w,c = draw_image.shape
+                                posx, posy = int(w/2), int(h/2)
+                                cv2.putText(draw_image, "Ticket Switch", (posy,posx), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 5)
+                                cv2.imshow(cv_cap.window_name, draw_image)
+                                TicketSwitchDetected = True
+
+                                # if IS_TICKET_SWITCH:
+                                #     cv2.waitKey(2000)
+
+                            ScannedItem = {
+                                    "product_name" : product_name, 
+                                    "product_img" : getBase64Image(draw_image),
+                                    "product_price" : f"{product_price}$"
+                            }
+
+                            # socketio.emit('scanned_list',ScannedItem)
+                            # socketio.emit('ticket_switch',TicketSwitchDetected)
+                            is_present = False  
+                            for elem in ScannedItems:
+                                if elem["product_name"] == product_name:
+                                    is_present = True
+                            
+                            if not is_present:
+                                ScannedItems.append(ScannedItem)
+
+                            stateUpdated = StateMachine_handler.update_state(STATE=STATES.SCANNING, confidence=personStateConf)
+                            if not stateUpdated:
+                                print(f"Error upadting state: {STATES.SCANNING}")
 
                 elif person_state["className"]=="Weighing":
                     if StateMachine_handler.get_current_state()!=STATES.WEGHING:
@@ -189,7 +221,7 @@ def main():
                             print(f"Error upadting state: {STATES.SCANNING}")
 
                 elif person_state["className"]=="Payment":
-                    if person_state["probability"]>0.9:
+                    if person_state["probability"]>=1:
                         if PaymentCounter<PaymentCounterMax:
                             PaymentCounter +=1
                         else:
@@ -199,19 +231,24 @@ def main():
                     pass
 
                 elif person_state["className"]=="Person exit":
-                    last3States = StateMachine_handler.get_last_3_states()
-                    if STATES.SCANNING in last3States:
-                        if STATES.PAYING in last3States:
-                            SuccessTransationCount +=1
-                        else:
-                            TheftTransactionCount +=1
-                    
-                    
-                    StateMachine_handler.reset_FSM()
-                    TicketSwitchDetected = False
+                    if personStateConf>=1:
+                        last3States = StateMachine_handler.get_last_3_states()
+                        if STATES.SCANNING in last3States:
+                            if STATES.PAYING in last3States:
+                                SuccessTransationCount +=1
+                            else:
+                                TheftTransactionCount +=1
+                        
+                        
+                        StateMachine_handler.reset_FSM()
+                        TicketSwitchDetected = False
+                        PaymentCounter = 0
 
                 
-                socketio.emit('Statemachine',StateMachine_handler.get_current_state().name)  
+                # socketio.emit('Statemachine',StateMachine_handler.get_current_state().name)  
+
+
+                # print(StateMachine_handler.get_last_3_states(), f"Success: {SuccessTransationCount} Theft: {TheftTransactionCount}")
                     
 
 
@@ -240,6 +277,14 @@ def main():
 
     cv2.destroyAllWindows()
 
+
+# @socketio.on('prediction_state')
+# def handle_prediction_state(json):
+#     global prediction_data
+#     prediction_data = json
+#     print('received json: ' + str(json))
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -255,12 +300,26 @@ def receive_state():
 def get_scanned_items():
     global ScannedItems
     data = {'message': 'Done', 'code': 'SUCCESS', 'data': ScannedItems}
+    ScannedItems = []
     return make_response(jsonify(data), 201)
 
 
+@app.route('/get_transaction_counts', methods = ['GET'])
+def get_transaction_counts():
+    global SuccessTransationCount, TheftTransactionCount
+    data = {'message': 'Done', 'code': 'SUCCESS', 'data': {"Success": SuccessTransationCount, "Theft": TheftTransactionCount}}
+    return make_response(jsonify(data), 201)
+
 
 if __name__ == "__main__":
-    flask_thread = Thread(target=lambda: app.run(host=host_name, port=port, debug=True, use_reloader=False))
+    flask_thread = Thread(target=lambda: app.run(host=host_name, port=port, debug=False, use_reloader=False))
+    # flask_thread = Thread(target=lambda: socketio.run(app, host=host_name, port=port, debug=False, use_reloader=False))
     flask_thread.start()
+
+    import logging
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)
+
+
     main()
     flask_thread.join()

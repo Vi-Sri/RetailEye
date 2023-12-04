@@ -8,7 +8,7 @@ class OpenCVCameraHandler:
         self.__focus_step_value = 5
 
         self.window_name = "RetailEye"
-        cv2.namedWindow(self.window_name)
+        cv2.namedWindow(self.window_name, 0)
         cv2.createTrackbar('Focus', self.window_name, 0, 100, self.setFocus)
 
 

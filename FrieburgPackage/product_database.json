@@ -49,24 +49,19 @@
         "price": 4.99,  
         "product_category": "milk"
     },
-    "0050428476765":{
-        "name": "FiberGummies",
-        "price": 14.99,  
-        "product_category": "Health"
-    },
     "078742251745":{
         "name": "Green Beans",
         "price": 4.99,  
         "product_category": "can"
     },
-    "0022000008985":{
-        "name": "Gum",
-        "price": 1.0,
-        "product_category": "Gums"
-    },
     "0619659175788":{
         "name": "SDCard",
         "price": 9.0,
         "product_category": "Electronics"
+    },
+    "A-0100-Z":{
+        "name": "FiberGummies",
+        "price": 9.0,
+        "product_category": "Food"
     }
 }

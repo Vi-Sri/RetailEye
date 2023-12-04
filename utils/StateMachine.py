@@ -42,8 +42,8 @@ class FSM:
         if STATE in STATES:
             if STATE in self.__allowedStates[self.CURRENT_STATE] and (confidence>95 or confidence>0.95):
                 return True                
-            else:
-                print(f"Invalid state update Current: {self.CURRENT_STATE} Trying to set: {STATE}")
+            # else:
+            #     print(f"Invalid state update Current: {self.CURRENT_STATE} Trying to set: {STATE}, Conf: {confidence}")
         return False
     
     def reset_FSM(self):
