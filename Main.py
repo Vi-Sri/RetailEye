@@ -21,6 +21,7 @@ host_name = "127.0.0.1"
 port = 3000
 
 prediction_data = None
+last_scanned_product = None
 
 def main():
     bd = BarcodDetection(prototxt=Config.BARCODE_PROTOTYPE_FILE, caffemodel=Config.BARCODE_CAFFE_MODEL_FILE)
@@ -192,8 +193,8 @@ def receive_state():
     return make_response(jsonify(data), 201)
 
 
+
 if __name__ == "__main__":
-    # main()
     flask_thread = Thread(target=lambda: app.run(host=host_name, port=port, debug=True, use_reloader=False))
     flask_thread.start()
     # main()
