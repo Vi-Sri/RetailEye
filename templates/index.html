@@ -108,7 +108,7 @@
             }
 
             const size = 200;
-            const flip = true; // Flip the webcam
+            const flip = false; // Flip the webcam
             webcam = new tmPose.Webcam(size, size, flip); // Create a new Webcam instance
             await webcam.setup({ deviceId: deviceId }); // Pass the selected device ID
             await webcam.play();
