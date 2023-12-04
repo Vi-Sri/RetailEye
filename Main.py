@@ -17,11 +17,9 @@ import time
 import base64
 from PIL import Image
 from io import BytesIO
-from flask_socketio import SocketIO, emit
 
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
 host_name = "127.0.0.1"
 port = 3000
 
@@ -246,14 +244,23 @@ def main():
 def index():
     return render_template('index.html')
 
-@socketio.on('person_state')
-def receive_state(data):
+@app.route('/receive_state', methods = ['POST'])
+def receive_state():
     global prediction_data
-    prediction_data = data
+    prediction_data = request.get_json()
+    data = {'message': 'Done', 'code': 'SUCCESS'}
+    return make_response(jsonify(data), 201)
+
+@app.route('/get_scanned_items', methods = ['GET'])
+def get_scanned_items():
+    global ScannedItems
+    data = {'message': 'Done', 'code': 'SUCCESS', 'data': ScannedItems}
+    return make_response(jsonify(data), 201)
+
 
 
 if __name__ == "__main__":
-    flask_thread = Thread(target=lambda: socketio.run(app, host=host_name, port=port, debug=False, use_reloader=False))
+    flask_thread = Thread(target=lambda: app.run(host=host_name, port=port, debug=True, use_reloader=False))
     flask_thread.start()
     main()
     flask_thread.join()
