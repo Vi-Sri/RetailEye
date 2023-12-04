@@ -5,16 +5,18 @@ from utils.BarcodeSwitchDetector import BarcodeSwitchDetector
 from utils.Config import Config
 from utils.ClassifyLabel import ClassifyLabel
 from utils.StateMachine import FSM, STATES
+from flask import Flask, render_template, Response
 import zmq
-
+from multiprocessing import Process, Queue
 import cv2
 import os
 import uuid
 from PIL import Image
 import time
 
-if __name__=="__main__":
 
+
+def main():
     bd = BarcodDetection(prototxt=Config.BARCODE_PROTOTYPE_FILE, caffemodel=Config.BARCODE_CAFFE_MODEL_FILE)
     barcode_switch_detector = BarcodeSwitchDetector(db_file_path=Config.BARCODE_DB_FILE)
     obj_det = ObjectDetector(model_path=Config.OBJECT_DETECTION_MODEL_FILE, labels_path=Config.OBJECT_DETECTION_LABEL_FILE)
@@ -166,4 +168,7 @@ if __name__=="__main__":
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-cv2.destroyAllWindows()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()

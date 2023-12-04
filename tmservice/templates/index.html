@@ -68,7 +68,20 @@
     <script type="text/javascript">
         const URL = "/static/my_model/";
         let model, webcam, ctx, labelContainer, maxPredictions;
-        let socket = io();
+        
+        async function sendPredictionData(prediction) {
+            try {
+                await fetch('/receive_state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prediction }),
+                });
+            } catch (error) {
+                console.error('Error sending prediction data:', error);
+            }
+        }
         async function init() {
             const modelURL = URL + "model.json";
             const metadataURL = URL + "metadata.json";
@@ -101,16 +114,13 @@
             console.log(posenetOutput);
 
             const prediction = await model.predict(posenetOutput);
-            socket.emit('send_prediction', prediction);
-
-            console.log(prediction);
 
             for (let i = 0; i < maxPredictions; i++) {
                 const classPrediction =
                     prediction[i].className + ": " + prediction[i].probability.toFixed(2);
                 labelContainer.childNodes[i].innerHTML = classPrediction;
             }
-
+            sendPredictionData(prediction);
             drawPose(pose);
         }
 
