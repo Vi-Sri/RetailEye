@@ -9,6 +9,11 @@
 <body class="bg-gray-900 text-white">
 
     <div class="flex justify-center items-start p-5 gap-10 min-h-screen">
+
+        <div class="mt-2 flex flex-col items-center">
+            <label for="cameraSelect" class="text-lg font-bold">Select Camera:</label>
+            <select id="cameraSelect" class="mt-1"></select>
+        </div>
         
         <!-- Modified Webcam Stream Container -->
         <div class="flex flex-col w-1/4">
@@ -67,7 +72,7 @@
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script type="text/javascript">
         const URL = "/static/my_model/";
-        let model, webcam, ctx, labelContainer, maxPredictions;
+        let model, ctx, labelContainer, maxPredictions;
         
         async function sendPredictionData(prediction) {
             try {
@@ -87,21 +92,68 @@
             const metadataURL = URL + "metadata.json";
             model = await tmPose.load(modelURL, metadataURL);
             maxPredictions = model.getTotalClasses();
-            const size = 200;
-            const flip = true; 
-            webcam = new tmPose.Webcam(size, size, flip);
-            await webcam.setup(); 
-            await webcam.play();
-            window.requestAnimationFrame(loop);
 
-            const canvas = document.getElementById("canvas");
-            canvas.width = size; canvas.height = size;
-            ctx = canvas.getContext("2d");
+            const size = 200;
+            ctx = document.getElementById("canvas").getContext("2d");
             labelContainer = document.getElementById("label-container");
             for (let i = 0; i < maxPredictions; i++) {
                 labelContainer.appendChild(document.createElement("div"));
             }
-        }
+        await setupCameraSelection();
+    }
+
+        async function startWebcam(deviceId) {
+            if (webcam) {
+                webcam.stop(); // Stop the current stream if it exists
+            }
+
+            const size = 200;
+            const flip = true; // Flip the webcam
+            webcam = new tmPose.Webcam(size, size, flip); // Create a new Webcam instance
+            await webcam.setup({ deviceId: deviceId }); // Pass the selected device ID
+            await webcam.play();
+            window.requestAnimationFrame(loop);
+}
+
+        async function setupCameraSelection() {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoInputDevices = devices.filter(device => device.kind === 'videoinput');
+
+            const cameraSelect = document.getElementById('cameraSelect');
+            videoInputDevices.forEach((device, index) => {
+                const option = document.createElement('option');
+                option.value = device.deviceId;
+                option.text = device.label || `Camera ${index + 1}`;
+                cameraSelect.appendChild(option);
+            });
+
+            cameraSelect.addEventListener('change', async () => {
+                const selectedDeviceId = cameraSelect.value;
+                startWebcam(selectedDeviceId);
+            });
+    }
+
+    // async function setupCameraSelection() {
+    //         await navigator.mediaDevices.getUserMedia({ video: true });
+
+    //         const devices = await navigator.mediaDevices.enumerateDevices();
+    //         const videoInputDevices = devices.filter(device => device.kind === 'videoinput');
+
+    //         const cameraSelect = document.getElementById('cameraSelect');
+    //         videoInputDevices.forEach((device, index) => {
+    //             const option = document.createElement('option');
+    //             option.value = device.deviceId;
+    //             option.text = device.label || `Camera ${index + 1}`;
+    //             cameraSelect.appendChild(option);
+    //         });
+
+    //         // Event listener for camera selection change
+    //         cameraSelect.addEventListener('change', async () => {
+    //             const selectedDeviceId = cameraSelect.value;
+    //             await webcam.setDeviceId(selectedDeviceId);
+    //             await webcam.setup(); // Modify as needed to accept device ID
+    //         });
+    // }
 
         async function loop(timestamp) {
             webcam.update(); 
@@ -134,9 +186,11 @@
                 }
             }
         }
+        let webcam;
+
         window.onload = function() {
             init();
-    };
+        };
     </script>
 </body>
 </html>
