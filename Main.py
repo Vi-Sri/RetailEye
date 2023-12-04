@@ -5,7 +5,8 @@ from utils.BarcodeSwitchDetector import BarcodeSwitchDetector
 from utils.Config import Config
 from utils.ClassifyLabel import ClassifyLabel
 from utils.StateMachine import FSM, STATES
-from flask import Flask, render_template, Response
+from flask import Flask, render_template, Response, make_response, jsonify
+from flask import request
 import zmq
 from threading import Thread
 import cv2
@@ -15,6 +16,11 @@ from PIL import Image
 import time
 
 
+app = Flask(__name__)
+host_name = "127.0.0.1"
+port = 3000
+
+prediction_data = None
 
 def main():
     bd = BarcodDetection(prototxt=Config.BARCODE_PROTOTYPE_FILE, caffemodel=Config.BARCODE_CAFFE_MODEL_FILE)
@@ -39,10 +45,14 @@ def main():
     zmq_socket = context.socket(zmq.SUB)
     zmq_socket.connect("tcp://localhost:5555")
     zmq_socket.setsockopt_string(zmq.SUBSCRIBE, '')
+    global prediction_data
 
     while cv_cap.isCapOpen():
 
         ret, frame = cv_cap.getFrame()
+
+        if prediction_data is not None:
+            person_state = max(prediction_data['prediction'], key=lambda x: x['probability'])
 
         try:
             data = zmq_socket.recv_json(flags=zmq.NOBLOCK)  
@@ -170,12 +180,21 @@ def main():
 
     cv2.destroyAllWindows()
 
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/receive_state', methods = ['POST'])
+def receive_state():
+    global prediction_data
+    prediction_data = request.get_json()
+    data = {'message': 'Done', 'code': 'SUCCESS'}
+    return make_response(jsonify(data), 201)
+
+
 if __name__ == "__main__":
     # main()
-    app = Flask(__name__)
-    host_name = "127.0.0.1"
-    port = 3000
     flask_thread = Thread(target=lambda: app.run(host=host_name, port=port, debug=True, use_reloader=False))
     flask_thread.start()
-    main()
+    # main()
     flask_thread.join()
