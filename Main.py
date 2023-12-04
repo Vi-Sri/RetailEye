@@ -7,7 +7,7 @@ from utils.ClassifyLabel import ClassifyLabel
 from utils.StateMachine import FSM, STATES
 from flask import Flask, render_template, Response
 import zmq
-from multiprocessing import Process, Queue
+from threading import Thread
 import cv2
 import os
 import uuid
@@ -171,4 +171,11 @@ def main():
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
+    # main()
+    app = Flask(__name__)
+    host_name = "127.0.0.1"
+    port = 3000
+    flask_thread = Thread(target=lambda: app.run(host=host_name, port=port, debug=True, use_reloader=False))
+    flask_thread.start()
     main()
+    flask_thread.join()
