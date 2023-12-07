@@ -54,7 +54,7 @@ class BarcodeSwitchDetector:
             product_price = product_data['price']
             product_name = product_data['name']
 
-            product_name = "FiberGummies"  #uncomment to check ticket switch manually
+            # product_name = "FiberGummies"  #uncomment to check ticket switch manually
 
             print("Barcode product: ", product_name, "Object classification", detected_objects, objects_confidences)
 
