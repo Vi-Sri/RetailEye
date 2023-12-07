@@ -21,7 +21,7 @@ from io import BytesIO
 from flask_socketio import SocketIO
 
 app = Flask(__name__)
-host_name = "127.0.0.1"
+host_name = "0.0.0.0"
 port = 3000
 # app = Flask(__name__)
 # app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -73,6 +73,9 @@ def main():
     PaymentCounter = 0
     PaymentCounterMax = 5
     PaymentDone = False
+    
+    PersonExitCount = 20
+    PersonExitCounter = 0
 
     global prediction_data
 
@@ -96,37 +99,24 @@ def main():
 
         if ret:
             draw_image = frame.copy()
-
             # person_state = {"className": "Scanning", "probability": 0.99}
 
             if person_state is not None:
                 personStateConf = person_state["probability"]
-                if person_state["className"]=="No person":
-                    if personStateConf>0.99:
-                        last3States = StateMachine_handler.get_last_3_states()
-                        if STATES.SCANNING in last3States:
-                            if STATES.PAYING in last3States:
-                                SuccessTransationCount +=1
-                            else:
-                                TheftTransactionCount +=1
-                        StateMachine_handler.update_state(STATE=STATES.PERSON_EXIT, confidence=personStateConf)
-                        StateMachine_handler.reset_FSM()
-                        TicketSwitchDetected = False
-                        PaymentCounter = 0
-                    # pass
                 
-                elif person_state["className"]=="Person Entry":
-                    if personStateConf>=1:
+                
+                if person_state["className"]=="Person Entry":
+                    if personStateConf>=0.99:
                         if StateMachine_handler.get_current_state()!=STATES.PERSON_ENTRY:
                             if StateMachine_handler.get_current_state()==STATES.PERSON_EXIT:
                                 stateUpdated = StateMachine_handler.update_state(STATE=STATES.PERSON_ENTRY, confidence=personStateConf)
                                 if not stateUpdated:
-                                    print(f"Error upadting state: {STATES.PERSON_ENTRY}")
+                                    print(f"Error upadting state: {STATES.PERSON_ENTRY} conf: {personStateConf} Last state: {StateMachine_handler.get_last_3_states()}")
 
-                elif person_state["className"]=="Scanning":
+                if person_state["className"]=="Scanning":
                     # TODO Add scanner code here to ensure scanning has happened
                     # if StateMachine_handler.get_current_state()!=STATES.SCANNING:
-                    if personStateConf>0.90:
+                    if personStateConf>0.95:
                         """
                         Barcode Detection
                         """
@@ -210,39 +200,71 @@ def main():
                             if not is_present:
                                 ScannedItems.append(ScannedItem)
 
-                            stateUpdated = StateMachine_handler.update_state(STATE=STATES.SCANNING, confidence=personStateConf)
-                            if not stateUpdated:
-                                print(f"Error upadting state: {STATES.SCANNING}")
+                            if StateMachine_handler.get_current_state()!=STATES.SCANNING:
+                                stateUpdated = StateMachine_handler.update_state(STATE=STATES.SCANNING, confidence=personStateConf)
+                                if not stateUpdated:
+                                    print(f"Error upadting state: {STATES.SCANNING} conf: {personStateConf} Last state: {StateMachine_handler.get_last_3_states()}")
 
-                elif person_state["className"]=="Weighing":
+                if person_state["className"]=="Weighing":
                     if StateMachine_handler.get_current_state()!=STATES.WEGHING:
                         stateUpdated = StateMachine_handler.update_state(STATE=STATES.WEGHING, confidence=personStateConf)
                         if not stateUpdated:
-                            print(f"Error upadting state: {STATES.SCANNING}")
+                            print(f"Error upadting state: {STATES.WEGHING} conf: {personStateConf} Last state: {StateMachine_handler.get_last_3_states()}")
 
-                elif person_state["className"]=="Payment":
-                    if person_state["probability"]>=1:
-                        if PaymentCounter<PaymentCounterMax:
-                            PaymentCounter +=1
-                        else:
-                            stateUpdated = StateMachine_handler.update_state(STATE=STATES.PAYING, confidence=personStateConf)
-                            if not stateUpdated:
-                                print(f"Error upadting state: {STATES.PAYING}")
-                    pass
-
-                elif person_state["className"]=="Person exit":
-                    if personStateConf>=1:
-                        last3States = StateMachine_handler.get_last_3_states()
-                        if STATES.SCANNING in last3States:
-                            if STATES.PAYING in last3States:
-                                SuccessTransationCount +=1
+                if person_state["className"]=="Payment":
+                    if person_state["probability"]>=0.95:
+                            # if StateMachine_handler.get_current_state()!=STATES.PAYING:
+                            if PaymentCounter<PaymentCounterMax:
+                                PaymentCounter +=1
                             else:
-                                TheftTransactionCount +=1
+                                stateUpdated = StateMachine_handler.update_state(STATE=STATES.PAYING, confidence=personStateConf)
+                                if not stateUpdated:
+                                    print(f"Error upadting state: {STATES.PAYING} conf: {personStateConf} Last state: {StateMachine_handler.get_last_3_states()}")
+                        
+                            print("pc", PaymentCounter)
+                            # else:
+                            #     if PaymentCounter==0:
+                            #         PaymentCounter +=1
+
+                print(TicketSwitchDetected)
+                if person_state["className"]=="No person":
+                    if personStateConf>=0.99:
+                        if PersonExitCounter<PersonExitCount:
+                                PersonExitCounter +=1
+                        else:
+                            last3States = StateMachine_handler.get_last_3_states()
+                            if STATES.SCANNING in last3States:
+                                if STATES.PAYING in last3States:
+                                    if TicketSwitchDetected==True:
+                                        TheftTransactionCount +=1
+                                    else:
+                                        SuccessTransationCount +=1
+                                else:
+                                    TheftTransactionCount +=1
+                                
+                                print(f"Exit person {PersonExitCounter}")
+                                StateMachine_handler.update_state(STATE=STATES.PERSON_EXIT, confidence=personStateConf)
+                                StateMachine_handler.reset_FSM()
+                                TicketSwitchDetected = False
+                                PaymentCounter = 0
+                                PersonExitCounter = 0
+                        # pass
+
+
+
+                # elif person_state["className"]=="Person exit":
+                #     if personStateConf>=1:
+                #         last3States = StateMachine_handler.get_last_3_states()
+                #         if STATES.SCANNING in last3States:
+                #             if STATES.PAYING in last3States:
+                #                 SuccessTransationCount +=1
+                #             else:
+                #                 TheftTransactionCount +=1
                         
                         
-                        StateMachine_handler.reset_FSM()
-                        TicketSwitchDetected = False
-                        PaymentCounter = 0
+                #         StateMachine_handler.reset_FSM()
+                #         TicketSwitchDetected = False
+                #         PaymentCounter = 0
 
                 
                 # socketio.emit('Statemachine',StateMachine_handler.get_current_state().name)  

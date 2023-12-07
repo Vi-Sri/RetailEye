@@ -218,7 +218,13 @@
             const devices = await navigator.mediaDevices.enumerateDevices();
             const videoInputDevices = devices.filter(device => device.kind === 'videoinput');
 
+
             const cameraSelect = document.getElementById('cameraSelect');
+            const Doption = document.createElement('option');
+            Doption.value = 0;
+            Doption.text = `---Select Camera---`;
+            cameraSelect.appendChild(Doption);
+
             videoInputDevices.forEach((device, index) => {
                 const option = document.createElement('option');
                 option.value = device.deviceId;
